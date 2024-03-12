@@ -1,12 +1,10 @@
 import speech_recognition as sr
-import pyaudio
+from pydub import AudioSegment
 import numpy as np
 from pinyin import pinyin as py_pinyin
 from difflib import SequenceMatcher
 
 def get_pitch(signal, sample_rate):
-    from pydub import AudioSegment
-
     audio = AudioSegment(signal.tobytes(), frame_rate=sample_rate, sample_width=signal.itemsize, channels=1)
     pitch = audio.dBFS
     return pitch
@@ -33,8 +31,15 @@ def main():
         recognized_text = recognizer.recognize_google(audio_data, language='zh-CN')
         print(f"Recognized Text: {recognized_text}")
 
-        best_match = max(chinese_words, key=lambda word: similar(recognized_text, py_pinyin(word, style=1)[0]))
-        similarity_score = similar(recognized_text, py_pinyin(best_match, style=1)[0])
+        # Get pinyin for recognized text
+        #recognized_pinyin = py_pinyin.get(recognized_text, format="numerical") #py_pinyin(recognized_text, style=1)[0]
+        recognized_pinyin = py_pinyin.get(recognized_text, format="strip", delimiter=" ")
+        #recognized_pinyin = py_pinyin.get(recognized_text, format="strip", delimiter=" ")
+        print(recognized_pinyin)
+
+        # Find the best match based on similarity of pinyin
+        best_match = max(chinese_words, key=lambda word: similar(recognized_pinyin, py_pinyin.get(word, format="strip", delimiter=" "))) #py_pinyin(word, style=1)[0]))
+        similarity_score = similar(recognized_pinyin, py_pinyin.get(best_match, format="strip", delimiter=" "))*100
         print(f"Best Match: {best_match}, Similarity Score: {similarity_score}")
 
     except sr.UnknownValueError:
